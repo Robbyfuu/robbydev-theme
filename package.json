@@ -1,0 +1,66 @@
+{
+	"name": "robbydev-theme",
+	"displayName": "RobbyDev",
+	"description": "Three vivid dark themes — RobbyDev, RobbyDev Black, and RobbyDev Mirage — crafted for VS Code, Cursor, and compatible editors. Neon magenta or Ayu-inspired vivid palettes on deep navy or pure black backgrounds.",
+	"version": "1.2.0",
+	"publisher": "robbyfuu",
+	"author": {
+		"name": "Roberto Arce",
+		"url": "https://github.com/robbyfuu"
+	},
+	"icon": "icon.png",
+	"galleryBanner": {
+		"color": "#0a0a0a",
+		"theme": "dark"
+	},
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"license": "MIT",
+	"keywords": [
+		"theme",
+		"color-theme",
+		"dark-theme",
+		"cursor",
+		"vscode",
+		"ayu",
+		"mirage",
+		"neon",
+		"magenta",
+		"typescript",
+		"react",
+		"python",
+		"rust",
+		"go"
+	],
+	"categories": [
+		"Themes"
+	],
+	"homepage": "https://github.com/robbyfuu/robbydev-theme#readme",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/robbyfuu/robbydev-theme.git"
+	},
+	"bugs": {
+		"url": "https://github.com/robbyfuu/robbydev-theme/issues"
+	},
+	"contributes": {
+		"themes": [
+			{
+				"label": "RobbyDev",
+				"uiTheme": "vs-dark",
+				"path": "./themes/robbydev-color-theme.json"
+			},
+			{
+				"label": "RobbyDev Black",
+				"uiTheme": "vs-dark",
+				"path": "./themes/robbydev-black-color-theme.json"
+			},
+			{
+				"label": "RobbyDev Mirage",
+				"uiTheme": "vs-dark",
+				"path": "./themes/robbydev-mirage-color-theme.json"
+			}
+		]
+	}
+}
