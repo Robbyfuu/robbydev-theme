@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 
 const MARKER_START = "/*ROBBYDEV-NEON-START*/";
 const MARKER_END = "/*ROBBYDEV-NEON-END*/";
 
-function getWorkbenchPath(): string | null {
+function getWorkbenchRelativePath(): string | null {
 	const appRoot = vscode.env.appRoot;
 	const candidates = [
 		"out/vs/code/electron-sandbox/workbench/workbench.esm.html",
@@ -16,10 +17,43 @@ function getWorkbenchPath(): string | null {
 	for (const candidate of candidates) {
 		const full = path.join(appRoot, candidate);
 		if (fs.existsSync(full)) {
-			return full;
+			return candidate;
 		}
 	}
 	return null;
+}
+
+function getWorkbenchPath(): string | null {
+	const rel = getWorkbenchRelativePath();
+	return rel ? path.join(vscode.env.appRoot, rel) : null;
+}
+
+/** Recalculate the SHA256 checksum of the workbench file and update product.json
+ *  so the editor doesn't show a "corrupted installation" warning at startup. */
+function updateProductChecksum(workbenchRelativePath: string): boolean {
+	const productPath = path.join(vscode.env.appRoot, "product.json");
+	if (!fs.existsSync(productPath)) {
+		return false;
+	}
+	let product: { checksums?: Record<string, string> };
+	try {
+		product = JSON.parse(fs.readFileSync(productPath, "utf8"));
+	} catch {
+		return false;
+	}
+	if (!product.checksums || !(workbenchRelativePath in product.checksums)) {
+		return false;
+	}
+	const fullPath = path.join(vscode.env.appRoot, workbenchRelativePath);
+	const content = fs.readFileSync(fullPath);
+	const hash = crypto.createHash("sha256").update(content).digest("base64").replace(/=+$/, "");
+	product.checksums[workbenchRelativePath] = hash;
+	try {
+		fs.writeFileSync(productPath, JSON.stringify(product, null, "\t"), "utf8");
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function readCss(context: vscode.ExtensionContext, brightness: number, disableGlow: boolean): string {
@@ -49,8 +83,9 @@ async function promptRestart(message: string): Promise<void> {
 }
 
 async function enableNeonDreams(context: vscode.ExtensionContext): Promise<void> {
-	const workbenchPath = getWorkbenchPath();
-	if (!workbenchPath) {
+	const workbenchRel = getWorkbenchRelativePath();
+	const workbenchPath = workbenchRel ? path.join(vscode.env.appRoot, workbenchRel) : null;
+	if (!workbenchPath || !workbenchRel) {
 		vscode.window.showErrorMessage(
 			"RobbyDev: could not locate the workbench HTML file. Your editor build may not be supported."
 		);
@@ -91,12 +126,20 @@ async function enableNeonDreams(context: vscode.ExtensionContext): Promise<void>
 		return;
 	}
 
-	await promptRestart("RobbyDev Neon Dreams enabled. Restart the editor to see the glow.");
+	const checksumFixed = updateProductChecksum(workbenchRel);
+	const checksumNote = checksumFixed
+		? ""
+		: " (Note: could not silence the corruption warning automatically — dismiss it on startup.)";
+
+	await promptRestart(
+		`RobbyDev Neon Dreams enabled. Restart the editor to see the glow.${checksumNote}`
+	);
 }
 
 async function disableNeonDreams(): Promise<void> {
-	const workbenchPath = getWorkbenchPath();
-	if (!workbenchPath) {
+	const workbenchRel = getWorkbenchRelativePath();
+	const workbenchPath = workbenchRel ? path.join(vscode.env.appRoot, workbenchRel) : null;
+	if (!workbenchPath || !workbenchRel) {
 		vscode.window.showErrorMessage("RobbyDev: could not locate the workbench HTML file.");
 		return;
 	}
@@ -124,6 +167,8 @@ async function disableNeonDreams(): Promise<void> {
 		vscode.window.showErrorMessage(`RobbyDev: failed to write workbench file. ${msg}`);
 		return;
 	}
+
+	updateProductChecksum(workbenchRel);
 
 	await promptRestart("RobbyDev Neon Dreams disabled. Restart the editor.");
 }

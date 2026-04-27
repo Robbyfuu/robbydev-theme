@@ -106,9 +106,12 @@ Add to your `settings.json`:
 
 Re-run **Enable Neon Dreams** after changing settings.
 
-### Removing the "corrupted" warning (optional)
+### Corruption warning
 
-The patch modifies a core file, so VS Code shows a one-time corruption warning at startup. You can either dismiss it or install the [Fix VSCode Checksums](https://marketplace.visualstudio.com/items?itemName=lehni.vscode-fix-checksums) extension and run `Fix Checksums: Apply`.
+Since v2.0.2 the extension recalculates the workbench checksum and updates `product.json` automatically when you enable or disable Neon Dreams, so no warning should appear. If your editor still complains:
+
+- Make sure you ran **Enable Neon Dreams** through the command palette (CLI / sudo edits won't update the checksum).
+- After an editor update, the original `product.json` is restored. Run **Enable Neon Dreams** again.
 
 ## Recommended Pairing
 
