@@ -29,7 +29,11 @@ function getWorkbenchPath(): string | null {
 }
 
 /** Recalculate the SHA256 checksum of the workbench file and update product.json
- *  so the editor doesn't show a "corrupted installation" warning at startup. */
+ *  so the editor doesn't show a "corrupted installation" warning at startup.
+ *
+ *  Note: product.json checksum keys are relative to the `out/` directory, so we
+ *  strip the leading `out/` segment from the filesystem path before looking up
+ *  the entry. Without this, the entry is never found and the warning persists. */
 function updateProductChecksum(workbenchRelativePath: string): boolean {
 	const productPath = path.join(vscode.env.appRoot, "product.json");
 	if (!fs.existsSync(productPath)) {
@@ -41,13 +45,14 @@ function updateProductChecksum(workbenchRelativePath: string): boolean {
 	} catch {
 		return false;
 	}
-	if (!product.checksums || !(workbenchRelativePath in product.checksums)) {
+	const checksumKey = workbenchRelativePath.replace(/^out\//, "");
+	if (!product.checksums || !(checksumKey in product.checksums)) {
 		return false;
 	}
 	const fullPath = path.join(vscode.env.appRoot, workbenchRelativePath);
 	const content = fs.readFileSync(fullPath);
 	const hash = crypto.createHash("sha256").update(content).digest("base64").replace(/=+$/, "");
-	product.checksums[workbenchRelativePath] = hash;
+	product.checksums[checksumKey] = hash;
 	try {
 		fs.writeFileSync(productPath, JSON.stringify(product, null, "\t"), "utf8");
 		return true;

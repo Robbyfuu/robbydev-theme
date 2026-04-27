@@ -5,6 +5,11 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.5] — 2026-04-27
+
+### Fixed
+- Checksum update now actually silences the corruption warning. The `product.json` keys are relative to the `out/` directory (e.g. `vs/code/electron-sandbox/workbench/workbench.html`), but the previous code looked up the full filesystem-relative path (`out/vs/...`) and never found the entry, so the recalculated hash was discarded. Strip the `out/` prefix before lookup.
+
 ## [2.0.4] — 2026-04-27
 
 ### Added

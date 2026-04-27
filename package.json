@@ -2,7 +2,7 @@
 	"name": "robbydev-theme",
 	"displayName": "RobbyDev",
 	"description": "Three vivid dark themes — RobbyDev, RobbyDev Black, and RobbyDev Mirage — with optional neon-glow editor mode. Crafted for VS Code, Cursor, and compatible editors.",
-	"version": "2.0.4",
+	"version": "2.0.5",
 	"publisher": "robbyfuu",
 	"author": {
 		"name": "Roberto Arce",
