@@ -5,6 +5,11 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.6] — 2026-04-27
+
+### Fixed
+- Status bar items no longer get cut off / hidden when Neon Dreams is active. Removed glow rules and `font-weight` overrides on `.statusbar`, tabs, activity bar, and bracket guides — those were widening text and triggering overflow clipping in the chrome bars. Glow is now scoped strictly to editor tokens + cursor, which is also closer to SynthWave '84's approach.
+
 ## [2.0.5] — 2026-04-27
 
 ### Fixed

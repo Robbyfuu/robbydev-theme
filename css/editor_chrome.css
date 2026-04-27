@@ -1,23 +1,28 @@
 /* RobbyDev — Neon Dreams glow layer.
+ * Glow is intentionally scoped to the editor surface (token text + cursor) so it
+ * never reflows or hides UI chrome (status bar, tabs, activity bar, etc.).
+ * Earlier versions added text-shadow + font-weight changes to the status bar
+ * which made some items overflow and disappear. Don't bring those back.
+ *
  * Colors come from the active RobbyDev theme via currentColor and CSS variables —
  * no hard-coded palette is imported here, so the glow tracks whichever variant
  * (RobbyDev, RobbyDev Black, RobbyDev Mirage) is active. */
 
 :root {
 	--rd-glow-brightness: __BRIGHTNESS__;
-	--rd-accent: #ff4be9; /* RobbyDev signature magenta — used for cursor + active borders */
+	--rd-accent: #ff4be9; /* RobbyDev signature magenta — used for cursor glow only */
 }
 
 /* GLOW_BLOCK_START */
 
 /* Token glow — single outer halo per span in its own color.
- * Only ONE shadow layer with a moderate blur radius keeps the text body crisp
- * (multiple/short-radius shadows blur the glyph outline and look smudged). */
+ * Only ONE shadow layer with a moderate blur radius keeps the text body crisp;
+ * multiple/short-radius shadows blur the glyph outline and look smudged. */
 .monaco-editor .view-line span {
 	text-shadow: 0 0 calc(6px * var(--rd-glow-brightness)) currentColor;
 }
 
-/* Cursor — RobbyDev magenta neon. */
+/* Cursor — RobbyDev magenta neon. Positioned outside the text flow, no reflow risk. */
 .monaco-editor .cursors-layer .cursor {
 	background-color: var(--rd-accent) !important;
 	border-color: var(--rd-accent) !important;
@@ -26,52 +31,4 @@
 		0 0 calc(12px * var(--rd-glow-brightness)) var(--rd-accent);
 }
 
-/* Active line subtle outer glow. */
-.monaco-editor .view-overlays .current-line {
-	box-shadow:
-		inset 0 0 calc(40px * var(--rd-glow-brightness)) rgba(255, 75, 233, calc(0.05 * var(--rd-glow-brightness)));
-}
-
-/* Activity bar — active item halo using the theme's existing accent. */
-.monaco-workbench .activitybar .action-item.checked .action-label::before,
-.monaco-workbench .activitybar .action-item.active .action-label::before {
-	text-shadow: 0 0 calc(8px * var(--rd-glow-brightness)) var(--rd-accent);
-}
-
-/* Status bar — subtle outer text glow. */
-.monaco-workbench .part.statusbar .statusbar-item {
-	text-shadow: 0 0 calc(3px * var(--rd-glow-brightness)) currentColor;
-}
-
-/* Tabs — active tab top border glow. */
-.monaco-workbench .tabs-container .tab.active::before {
-	box-shadow: 0 0 calc(8px * var(--rd-glow-brightness)) var(--rd-accent);
-}
-
-/* Selected text — soft glow on selection background. */
-.monaco-editor .selected-text {
-	box-shadow: 0 0 calc(6px * var(--rd-glow-brightness)) var(--rd-accent);
-}
-
-/* Find match highlight — accent glow. */
-.monaco-editor .findMatch,
-.monaco-editor .currentFindMatch {
-	box-shadow: 0 0 calc(6px * var(--rd-glow-brightness)) var(--rd-accent);
-}
-
-/* Brackets inherit the same single-layer halo as other tokens — no override needed,
- * keeping them crisp avoids the "double shadow" smudge effect. */
-
 /* GLOW_BLOCK_END */
-
-/* Always-on chrome tweaks (kept even when disableGlow=true) — these are mild
- * contrast boosts and stay outside the GLOW_BLOCK so the user can disable the
- * heavy glow but keep the subtle polish. */
-
-.monaco-editor .lines-content {
-	letter-spacing: 0.2px;
-}
-
-.monaco-workbench .part.statusbar {
-	font-weight: 500;
-}
