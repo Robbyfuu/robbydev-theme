@@ -5,6 +5,22 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-04-26
+
+### Added
+- **Neon Dreams** optional glow effect — each token glows in its own RobbyDev color, cursor pulses in signature magenta
+- Commands: `RobbyDev: Enable Neon Dreams` / `RobbyDev: Disable Neon Dreams`
+- Settings: `robbydev.neonBrightness` (0–1, default 0.45), `robbydev.disableGlow` (boolean)
+- TypeScript extension scaffolding (esbuild bundle, tsconfig, types)
+
+### Changed
+- **BREAKING (mechanism, not user-facing):** extension now ships with a `main` entry. Theme-only users are unaffected; the glow is opt-in via command.
+- Description updated to mention glow capability
+
+### Notes
+- Glow patches `workbench.html` in the editor install directory. Editor updates revert the patch — re-run the enable command.
+- macOS/Linux require write permission on the install dir; Windows may need administrator privileges.
+
 ## [1.2.0] — 2026-04-26
 
 ### Added

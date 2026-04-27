@@ -1,8 +1,8 @@
 {
 	"name": "robbydev-theme",
 	"displayName": "RobbyDev",
-	"description": "Three vivid dark themes — RobbyDev, RobbyDev Black, and RobbyDev Mirage — crafted for VS Code, Cursor, and compatible editors. Neon magenta or Ayu-inspired vivid palettes on deep navy or pure black backgrounds.",
-	"version": "1.2.0",
+	"description": "Three vivid dark themes — RobbyDev, RobbyDev Black, and RobbyDev Mirage — with optional neon-glow editor mode. Crafted for VS Code, Cursor, and compatible editors.",
+	"version": "2.0.0",
 	"publisher": "robbyfuu",
 	"author": {
 		"name": "Roberto Arce",
@@ -26,6 +26,7 @@
 		"ayu",
 		"mirage",
 		"neon",
+		"glow",
 		"magenta",
 		"typescript",
 		"react",
@@ -44,6 +45,19 @@
 	"bugs": {
 		"url": "https://github.com/robbyfuu/robbydev-theme/issues"
 	},
+	"main": "./out/extension.js",
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"scripts": {
+		"build": "node esbuild.mjs",
+		"watch": "node esbuild.mjs --watch",
+		"typecheck": "tsc --noEmit",
+		"vscode:prepublish": "pnpm run build",
+		"package": "vsce package --no-dependencies",
+		"publish:vsce": "vsce publish --no-dependencies",
+		"publish:ovsx": "ovsx publish --no-dependencies"
+	},
 	"contributes": {
 		"themes": [
 			{
@@ -61,6 +75,39 @@
 				"uiTheme": "vs-dark",
 				"path": "./themes/robbydev-mirage-color-theme.json"
 			}
-		]
+		],
+		"commands": [
+			{
+				"command": "robbydev.enableNeonDreams",
+				"title": "RobbyDev: Enable Neon Dreams"
+			},
+			{
+				"command": "robbydev.disableNeonDreams",
+				"title": "RobbyDev: Disable Neon Dreams"
+			}
+		],
+		"configuration": {
+			"title": "RobbyDev",
+			"properties": {
+				"robbydev.neonBrightness": {
+					"type": "number",
+					"default": 0.45,
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Brightness of the Neon Dreams glow effect (0 = invisible, 1 = blinding). Re-run \"RobbyDev: Enable Neon Dreams\" after changing."
+				},
+				"robbydev.disableGlow": {
+					"type": "boolean",
+					"default": false,
+					"description": "Keep editor chrome tweaks but disable the heavy text-shadow glow. Re-run \"RobbyDev: Enable Neon Dreams\" after changing."
+				}
+			}
+		}
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"@types/vscode": "^1.74.0",
+		"esbuild": "^0.28.0",
+		"typescript": "^6.0.3"
 	}
 }

@@ -12,9 +12,9 @@ Three carefully crafted dark color themes for VS Code, Cursor, and compatible ed
 
 ## Preview — RobbyDev Mirage
 
-![RobbyDev Mirage](docs/screenshots/mirage-typescript.jpg)
+![RobbyDev Mirage](https://raw.githubusercontent.com/robbyfuu/robbydev-theme/main/docs/screenshots/mirage-typescript.jpg)
 
-![RobbyDev Mirage zoom](docs/screenshots/mirage-typescript-zoom.jpg)
+![RobbyDev Mirage zoom](https://raw.githubusercontent.com/robbyfuu/robbydev-theme/main/docs/screenshots/mirage-typescript-zoom.jpg)
 
 ## Mirage Color Reference
 
@@ -68,6 +68,47 @@ Or open the Extensions panel, search **RobbyDev**, click Install.
 - **RobbyDev**
 - **RobbyDev Black**
 - **RobbyDev Mirage**
+
+## Neon Dreams (optional glow effect)
+
+Each token in the editor emits a soft halo in **its own color** — purple keywords glow purple, lime strings glow green, cyan types glow cyan. The cursor and active borders pulse in RobbyDev magenta.
+
+> ⚠️ **Disclaimer.** Editors like VS Code and Cursor don't natively support runtime CSS injection. The glow works by **patching the editor's `workbench.html`** in your install directory. The editor will mark itself as "corrupted" on next launch — this is normal and dismissible. Each editor update reverts the patch; just re-run the enable command. Use at your own risk.
+
+### Enable
+
+1. Set your active theme to any **RobbyDev** variant.
+2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+3. Run **RobbyDev: Enable Neon Dreams**.
+4. Restart the editor when prompted.
+
+On Windows, run the editor as administrator the first time. On macOS/Linux, your editor must be installed in a location you have write access to.
+
+### Disable
+
+Command palette → **RobbyDev: Disable Neon Dreams** → restart.
+
+### Configure brightness
+
+Add to your `settings.json`:
+
+```json
+{
+  "robbydev.neonBrightness": 0.45,
+  "robbydev.disableGlow": false
+}
+```
+
+| Setting | Type | Default | Effect |
+|---|---|---|---|
+| `robbydev.neonBrightness` | `0`–`1` | `0.45` | Glow intensity |
+| `robbydev.disableGlow` | boolean | `false` | Keep chrome polish but turn off the heavy text-shadow |
+
+Re-run **Enable Neon Dreams** after changing settings.
+
+### Removing the "corrupted" warning (optional)
+
+The patch modifies a core file, so VS Code shows a one-time corruption warning at startup. You can either dismiss it or install the [Fix VSCode Checksums](https://marketplace.visualstudio.com/items?itemName=lehni.vscode-fix-checksums) extension and run `Fix Checksums: Apply`.
 
 ## Recommended Pairing
 

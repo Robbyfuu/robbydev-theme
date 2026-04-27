@@ -4,5 +4,11 @@
 .DS_Store
 **/.DS_Store
 node_modules/**
+src/**
 *.vsix
 .vsixmanifest
+tsconfig.json
+esbuild.mjs
+pnpm-lock.yaml
+**/*.map
+**/*.ts
