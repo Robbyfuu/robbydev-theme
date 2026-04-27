@@ -5,6 +5,7 @@ import * as crypto from "crypto";
 
 const MARKER_START = "/*ROBBYDEV-NEON-START*/";
 const MARKER_END = "/*ROBBYDEV-NEON-END*/";
+const SCRIPT_FILE = "robbydev-neondreams.js";
 
 function getWorkbenchRelativePath(): string | null {
 	const appRoot = vscode.env.appRoot;
@@ -23,17 +24,11 @@ function getWorkbenchRelativePath(): string | null {
 	return null;
 }
 
-function getWorkbenchPath(): string | null {
-	const rel = getWorkbenchRelativePath();
-	return rel ? path.join(vscode.env.appRoot, rel) : null;
-}
-
 /** Recalculate the SHA256 checksum of the workbench file and update product.json
  *  so the editor doesn't show a "corrupted installation" warning at startup.
  *
- *  Note: product.json checksum keys are relative to the `out/` directory, so we
- *  strip the leading `out/` segment from the filesystem path before looking up
- *  the entry. Without this, the entry is never found and the warning persists. */
+ *  product.json checksum keys are relative to the `out/` directory, so we strip
+ *  the leading `out/` segment from the filesystem path before lookup. */
 function updateProductChecksum(workbenchRelativePath: string): boolean {
 	const productPath = path.join(vscode.env.appRoot, "product.json");
 	if (!fs.existsSync(productPath)) {
@@ -61,14 +56,75 @@ function updateProductChecksum(workbenchRelativePath: string): boolean {
 	}
 }
 
-function readCss(context: vscode.ExtensionContext, brightness: number, disableGlow: boolean): string {
-	const cssPath = path.join(context.extensionPath, "css", "editor_chrome.css");
-	let css = fs.readFileSync(cssPath, "utf8");
-	css = css.replace(/__BRIGHTNESS__/g, String(brightness));
-	if (disableGlow) {
-		css = css.replace("/* GLOW_BLOCK_START */", "/* GLOW_BLOCK_START */ /*").replace("/* GLOW_BLOCK_END */", "*/ /* GLOW_BLOCK_END */");
+/** Build the runtime script that injects per-token glow.
+ *
+ *  Strategy (ported from SynthWave '84): wait for Monaco's `.vscode-tokens-styles`
+ *  element to populate, then create a NEW <style> tag that mirrors its rules with
+ *  text-shadow added to each `color: #xxx;` declaration. This scopes the glow to
+ *  actual token color rules (`.mtk1`, `.mtk2`, …) instead of every span in the
+ *  editor — which avoids the chrome-bar layout glitches caused by broad text-shadow
+ *  selectors. */
+function buildNeonScript(brightness: number, disableGlow: boolean): string {
+	const safeBrightness = Math.max(0, Math.min(1, brightness));
+	return `(function () {
+	var BRIGHTNESS = ${safeBrightness};
+	var ACCENT = "#ff4be9";
+	var DISABLE_GLOW = ${disableGlow};
+
+	function buildAugmentedCss(sourceCss) {
+		var augmented = DISABLE_GLOW
+			? sourceCss
+			: sourceCss.replace(/color:\\s*(#[0-9a-fA-F]{6,8});/g, function (_m, color) {
+				return "color: " + color
+					+ "; text-shadow: 0 0 " + (6 * BRIGHTNESS).toFixed(2) + "px " + color
+					+ "; backface-visibility: hidden;";
+			});
+		augmented += "\\n.monaco-editor .cursors-layer .cursor {"
+			+ " background-color: " + ACCENT + " !important;"
+			+ " border-color: " + ACCENT + " !important;"
+			+ " box-shadow: 0 0 " + (4 * BRIGHTNESS).toFixed(2) + "px " + ACCENT + ","
+			+ " 0 0 " + (12 * BRIGHTNESS).toFixed(2) + "px " + ACCENT + ";"
+			+ " }";
+		return augmented;
 	}
-	return css;
+
+	function apply() {
+		var el = document.querySelector(".vscode-tokens-styles");
+		if (!el || !el.innerText || el.innerText.indexOf("color:") === -1) {
+			return false;
+		}
+		var existing = document.getElementById("robbydev-neon-dreams");
+		if (existing) {
+			existing.parentNode.removeChild(existing);
+		}
+		var style = document.createElement("style");
+		style.id = "robbydev-neon-dreams";
+		style.textContent = buildAugmentedCss(el.innerText);
+		document.body.appendChild(style);
+		return true;
+	}
+
+	function bootstrap() {
+		if (apply()) {
+			return;
+		}
+		var attempts = 0;
+		var observer = new MutationObserver(function () {
+			attempts++;
+			if (apply() || attempts > 200) {
+				observer.disconnect();
+			}
+		});
+		observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", bootstrap);
+	} else {
+		bootstrap();
+	}
+})();
+`;
 }
 
 function stripPatch(html: string): string {
@@ -87,7 +143,7 @@ async function promptRestart(message: string): Promise<void> {
 	}
 }
 
-async function enableNeonDreams(context: vscode.ExtensionContext): Promise<void> {
+async function enableNeonDreams(_context: vscode.ExtensionContext): Promise<void> {
 	const workbenchRel = getWorkbenchRelativePath();
 	const workbenchPath = workbenchRel ? path.join(vscode.env.appRoot, workbenchRel) : null;
 	if (!workbenchPath || !workbenchRel) {
@@ -113,12 +169,20 @@ async function enableNeonDreams(context: vscode.ExtensionContext): Promise<void>
 	const brightness = Math.max(0, Math.min(1, brightnessRaw));
 	const disableGlow = config.get<boolean>("disableGlow", false);
 
-	const css = readCss(context, brightness, disableGlow);
+	// Write the script next to workbench.html. Same-origin script src is allowed by
+	// the CSP `script-src` directive (which permits `'self'`), unlike inline scripts.
+	const scriptPath = path.join(path.dirname(workbenchPath), SCRIPT_FILE);
+	try {
+		fs.writeFileSync(scriptPath, buildNeonScript(brightness, disableGlow), "utf8");
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		vscode.window.showErrorMessage(
+			`RobbyDev: failed to write Neon Dreams script. On macOS/Linux you may need write permission on the install directory; on Windows run the editor as administrator. ${msg}`
+		);
+		return;
+	}
 
-	// CSP in modern editors blocks inline <script> (script-src lacks 'unsafe-inline'),
-	// but allows inline <style> via 'unsafe-inline' in style-src. Inject <style> directly.
-	const injection = `${MARKER_START}<style id="robbydev-neon-dreams">\n${css}\n</style>${MARKER_END}`;
-
+	const injection = `${MARKER_START}<script src="${SCRIPT_FILE}"></script>${MARKER_END}`;
 	html = html.replace("</html>", `${injection}\n</html>`);
 
 	try {
@@ -126,7 +190,7 @@ async function enableNeonDreams(context: vscode.ExtensionContext): Promise<void>
 	} catch (err: unknown) {
 		const msg = err instanceof Error ? err.message : String(err);
 		vscode.window.showErrorMessage(
-			`RobbyDev: failed to write workbench file. On macOS/Linux you may need write permissions on the install directory; on Windows run the editor as administrator. ${msg}`
+			`RobbyDev: failed to write workbench file. On macOS/Linux you may need write permission on the install directory; on Windows run the editor as administrator. ${msg}`
 		);
 		return;
 	}
@@ -171,6 +235,16 @@ async function disableNeonDreams(): Promise<void> {
 		const msg = err instanceof Error ? err.message : String(err);
 		vscode.window.showErrorMessage(`RobbyDev: failed to write workbench file. ${msg}`);
 		return;
+	}
+
+	// Best-effort cleanup of the script file. Failure here is non-fatal.
+	const scriptPath = path.join(path.dirname(workbenchPath), SCRIPT_FILE);
+	try {
+		if (fs.existsSync(scriptPath)) {
+			fs.unlinkSync(scriptPath);
+		}
+	} catch {
+		// ignore — disabling already removed the script reference
 	}
 
 	updateProductChecksum(workbenchRel);

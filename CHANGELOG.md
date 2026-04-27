@@ -5,6 +5,16 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.7] — 2026-04-27
+
+### Changed
+- **Glow injection mechanism rewritten.** Previous versions added a blanket `text-shadow` to `.monaco-editor .view-line span`, which created compositing layers that pushed/clipped overlapping chrome (status bar disappearing was the visible symptom). v2.0.7 ports the SynthWave '84 approach: a same-origin `<script src="robbydev-neondreams.js">` is injected (allowed by the editor's `script-src 'self'` CSP — unlike inline scripts), and at runtime it reads Monaco's `.vscode-tokens-styles` element and rewrites each `color: #xxx;` rule to add a matching `text-shadow: 0 0 Npx #xxx;`. Glow is therefore scoped to the actual `.mtk*` token classes, not to every span — chrome bars are untouched.
+- The script file lives next to `workbench.html` and is recreated each time **Enable Neon Dreams** runs (so brightness changes take effect on re-enable). It's deleted on disable.
+- Removed `css/editor_chrome.css` — no longer used; the runtime script bakes brightness and the magenta cursor accent into the generated styles directly.
+
+### Fixed
+- Status bar items no longer get hidden when Neon Dreams is active.
+
 ## [2.0.6] — 2026-04-27
 
 ### Fixed
