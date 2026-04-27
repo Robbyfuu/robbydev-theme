@@ -5,6 +5,11 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] — 2026-04-27
+
+### Fixed
+- Neon Dreams glow now actually applies. Previous version injected an inline `<script>` which is blocked by the editor's Content Security Policy (`script-src` lacks `'unsafe-inline'`). Switched to a direct `<style>` element injection, which `style-src 'unsafe-inline'` permits. After updating, run **RobbyDev: Enable Neon Dreams** again and restart.
+
 ## [2.0.0] — 2026-04-26
 
 ### Added

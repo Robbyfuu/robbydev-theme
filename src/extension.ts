@@ -75,10 +75,9 @@ async function enableNeonDreams(context: vscode.ExtensionContext): Promise<void>
 
 	const css = readCss(context, brightness, disableGlow);
 
-	const injection =
-		`${MARKER_START}<script>(function(){var s=document.createElement('style');` +
-		`s.id='robbydev-neon-dreams';s.textContent=${JSON.stringify(css)};` +
-		`document.head.appendChild(s);})();</script>${MARKER_END}`;
+	// CSP in modern editors blocks inline <script> (script-src lacks 'unsafe-inline'),
+	// but allows inline <style> via 'unsafe-inline' in style-src. Inject <style> directly.
+	const injection = `${MARKER_START}<style id="robbydev-neon-dreams">\n${css}\n</style>${MARKER_END}`;
 
 	html = html.replace("</html>", `${injection}\n</html>`);
 
