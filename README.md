@@ -16,6 +16,12 @@ Three carefully crafted dark color themes for VS Code, Cursor, and compatible ed
 
 ![RobbyDev Mirage zoom](https://raw.githubusercontent.com/robbyfuu/robbydev-theme/main/docs/screenshots/mirage-typescript-zoom.jpg)
 
+### Mirage + Neon Dreams glow
+
+Per-token neon halo using each token's own color — purple keywords glow purple, lime strings glow green, cyan types glow cyan. Text body stays crisp.
+
+![RobbyDev Mirage with Neon Dreams](https://raw.githubusercontent.com/robbyfuu/robbydev-theme/main/docs/screenshots/mirage-neon-glow.jpg)
+
 ## Mirage Color Reference
 
 ### Syntax
