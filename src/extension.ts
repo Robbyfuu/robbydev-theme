@@ -111,6 +111,20 @@ function buildNeonScript(brightness: number, disableGlow: boolean): string {
 		return parts.join("\\n");
 	}
 
+	function ensureBodyFontSize() {
+		// Some Cursor versions ship a workbench.main.css where the body has a
+		// non-zero font-size, which breaks the status bar / chrome layout once
+		// glow rules force a recompute. Fix it defensively at runtime — only if
+		// it's actually wrong, so we don't disturb editors that already have 0px.
+		try {
+			var current = window.getComputedStyle(document.body).fontSize;
+			if (current && current !== "0px") {
+				document.body.style.fontSize = "0px";
+				console.log("[RobbyDev] forced body font-size 0px (was " + current + ")");
+			}
+		} catch (_e) {}
+	}
+
 	function apply() {
 		var el = document.querySelector(".vscode-tokens-styles");
 		if (!el || !el.innerText || el.innerText.indexOf("color:") === -1) return false;
@@ -120,6 +134,7 @@ function buildNeonScript(brightness: number, disableGlow: boolean): string {
 		style.id = "robbydev-neon-dreams";
 		style.textContent = buildCss(el.innerText);
 		document.body.appendChild(style);
+		ensureBodyFontSize();
 		try {
 			var n = (style.textContent.match(/text-shadow/g) || []).length;
 			console.log("[RobbyDev] Neon Dreams applied — " + n + " token rules + cursor");

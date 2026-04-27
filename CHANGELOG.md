@@ -5,6 +5,11 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.9] — 2026-04-27
+
+### Fixed
+- **Body font-size guard.** Some Cursor builds ship a `workbench.main.css` where the `body` element has a non-zero `font-size`, which causes the status bar (and other chrome bars that inherit the body font sizing) to render with the wrong line height and visually disappear when our glow stylesheet is appended. The runtime script now reads the computed body font-size after injection and forces it to `0px` only when it's wrong — editors that already use `font-size: 0` are untouched.
+
 ## [2.0.8] — 2026-04-27
 
 ### Fixed
