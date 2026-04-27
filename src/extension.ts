@@ -170,9 +170,19 @@ function stripPatch(html: string): string {
 	return html.slice(0, startIdx) + html.slice(endIdx + MARKER_END.length);
 }
 
+/** Prompt the user to fully quit and relaunch the editor.
+ *
+ *  IMPORTANT: we cannot use `workbench.action.reloadWindow` here. Reload only
+ *  restarts the renderer; the main process keeps the original `product.json`
+ *  cached in memory and continues to fail integrity verification, so the
+ *  corruption warning survives a reload. A full quit + relaunch is the only
+ *  thing that re-reads the patched checksum file. */
 async function promptRestart(message: string): Promise<void> {
-	const choice = await vscode.window.showInformationMessage(message, "Restart editor");
-	if (choice === "Restart editor") {
+	const fullMessage = `${message} You must fully quit and reopen the editor — Reload Window keeps the original product.json cached in the main process, so the "corrupted installation" warning will keep appearing until a real quit.`;
+	const choice = await vscode.window.showInformationMessage(fullMessage, "Quit editor", "Reload Window anyway");
+	if (choice === "Quit editor") {
+		await vscode.commands.executeCommand("workbench.action.quit");
+	} else if (choice === "Reload Window anyway") {
 		await vscode.commands.executeCommand("workbench.action.reloadWindow");
 	}
 }

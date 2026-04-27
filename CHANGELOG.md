@@ -5,6 +5,11 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.10] — 2026-04-27
+
+### Fixed
+- **"Corrupted installation" warning now actually goes away** after enabling glow. Previous versions invoked `workbench.action.reloadWindow` which only restarts the renderer process — the main process keeps `product.json` cached in memory, so the corruption warning kept firing every launch even though the on-disk checksum was correct. The post-enable / post-disable prompt now offers a "Quit editor" action that runs `workbench.action.quit` instead. A full quit + manual relaunch is the only thing that forces the main process to re-read the patched `product.json`. ("Reload Window anyway" remains as a secondary option for users who want to skip the silencing.)
+
 ## [2.0.9] — 2026-04-27
 
 ### Fixed
