@@ -10,18 +10,11 @@
 
 /* GLOW_BLOCK_START */
 
-/* Token glow — every syntax-colored span emits a halo in its own color. */
+/* Token glow — single outer halo per span in its own color.
+ * Only ONE shadow layer with a moderate blur radius keeps the text body crisp
+ * (multiple/short-radius shadows blur the glyph outline and look smudged). */
 .monaco-editor .view-line span {
-	text-shadow:
-		0 0 calc(2px * var(--rd-glow-brightness)) currentColor,
-		0 0 calc(8px * var(--rd-glow-brightness)) currentColor;
-}
-
-/* Slightly stronger glow for keywords / functions / strings (already-bright tokens). */
-.monaco-editor .view-line span[class*="mtk"]:where(:not(.mtk1)) {
-	text-shadow:
-		0 0 calc(3px * var(--rd-glow-brightness)) currentColor,
-		0 0 calc(10px * var(--rd-glow-brightness)) currentColor;
+	text-shadow: 0 0 calc(6px * var(--rd-glow-brightness)) currentColor;
 }
 
 /* Cursor — RobbyDev magenta neon. */
@@ -66,15 +59,8 @@
 	box-shadow: 0 0 calc(6px * var(--rd-glow-brightness)) var(--rd-accent);
 }
 
-/* Bracket pair colorization — soft glow per bracket color. */
-.monaco-editor .bracket-highlighting-0,
-.monaco-editor .bracket-highlighting-1,
-.monaco-editor .bracket-highlighting-2,
-.monaco-editor .bracket-highlighting-3,
-.monaco-editor .bracket-highlighting-4,
-.monaco-editor .bracket-highlighting-5 {
-	text-shadow: 0 0 calc(4px * var(--rd-glow-brightness)) currentColor;
-}
+/* Brackets inherit the same single-layer halo as other tokens — no override needed,
+ * keeping them crisp avoids the "double shadow" smudge effect. */
 
 /* GLOW_BLOCK_END */
 
