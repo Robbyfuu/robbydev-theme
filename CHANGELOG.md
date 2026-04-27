@@ -5,6 +5,15 @@ All notable changes to the RobbyDev theme are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.8] — 2026-04-27
+
+### Fixed
+- **Status bar disappearing fixed for real this time.** v2.0.7 still rewrote every `color: #xxx;` rule inside `.vscode-tokens-styles`, including rules whose selectors matched non-editor elements (Cursor's `.vscode-tokens-styles` includes more than just `.mtk*`). v2.0.8 emits NEW rules instead of rewriting originals, and every emitted rule is prefixed with `.monaco-editor .view-lines` — so the text-shadow can only paint inside actual editor lines and is physically incapable of touching chrome bars.
+- The corruption-warning suppression now reports a precise reason on failure (instead of a generic note), so we can tell whether `product.json` was missing, unreadable, or unwritable — useful for debugging when Cursor restores the file after an editor update.
+
+### Notes
+- Open the developer console (Help → Toggle Developer Tools → Console) after enabling. You should see a single line like `[RobbyDev] Neon Dreams applied — 28 token rules + cursor`. If you don't, the script didn't run (CSP / file-permission issue).
+
 ## [2.0.7] — 2026-04-27
 
 ### Changed

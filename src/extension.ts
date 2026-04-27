@@ -7,6 +7,8 @@ const MARKER_START = "/*ROBBYDEV-NEON-START*/";
 const MARKER_END = "/*ROBBYDEV-NEON-END*/";
 const SCRIPT_FILE = "robbydev-neondreams.js";
 
+type ChecksumResult = { ok: true } | { ok: false; reason: string };
+
 function getWorkbenchRelativePath(): string | null {
 	const appRoot = vscode.env.appRoot;
 	const candidates = [
@@ -29,20 +31,25 @@ function getWorkbenchRelativePath(): string | null {
  *
  *  product.json checksum keys are relative to the `out/` directory, so we strip
  *  the leading `out/` segment from the filesystem path before lookup. */
-function updateProductChecksum(workbenchRelativePath: string): boolean {
+function updateProductChecksum(workbenchRelativePath: string): ChecksumResult {
 	const productPath = path.join(vscode.env.appRoot, "product.json");
 	if (!fs.existsSync(productPath)) {
-		return false;
+		return { ok: false, reason: `product.json not found at ${productPath}` };
 	}
 	let product: { checksums?: Record<string, string> };
 	try {
 		product = JSON.parse(fs.readFileSync(productPath, "utf8"));
-	} catch {
-		return false;
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		return { ok: false, reason: `failed to parse product.json: ${msg}` };
 	}
 	const checksumKey = workbenchRelativePath.replace(/^out\//, "");
-	if (!product.checksums || !(checksumKey in product.checksums)) {
-		return false;
+	if (!product.checksums) {
+		return { ok: false, reason: "product.json has no `checksums` field" };
+	}
+	if (!(checksumKey in product.checksums)) {
+		const sample = Object.keys(product.checksums).slice(0, 3).join(", ");
+		return { ok: false, reason: `no checksum entry for ${checksumKey} (available: ${sample}…)` };
 	}
 	const fullPath = path.join(vscode.env.appRoot, workbenchRelativePath);
 	const content = fs.readFileSync(fullPath);
@@ -50,70 +57,82 @@ function updateProductChecksum(workbenchRelativePath: string): boolean {
 	product.checksums[checksumKey] = hash;
 	try {
 		fs.writeFileSync(productPath, JSON.stringify(product, null, "\t"), "utf8");
-		return true;
-	} catch {
-		return false;
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		return { ok: false, reason: `failed to write product.json (likely a permission issue): ${msg}` };
 	}
+	return { ok: true };
 }
 
 /** Build the runtime script that injects per-token glow.
  *
- *  Strategy (ported from SynthWave '84): wait for Monaco's `.vscode-tokens-styles`
- *  element to populate, then create a NEW <style> tag that mirrors its rules with
- *  text-shadow added to each `color: #xxx;` declaration. This scopes the glow to
- *  actual token color rules (`.mtk1`, `.mtk2`, …) instead of every span in the
- *  editor — which avoids the chrome-bar layout glitches caused by broad text-shadow
- *  selectors. */
+ *  Strategy: emit ADDITIONAL CSS rules scoped under `.monaco-editor .view-lines`.
+ *  The original token color rules in `.vscode-tokens-styles` are left untouched,
+ *  and we never add a blanket text-shadow to every span. text-shadow is therefore
+ *  physically incapable of applying to chrome elements (status bar, activity bar,
+ *  tabs, etc.) — that was the cause of the items-disappearing bug in v2.0.6 / v2.0.7. */
 function buildNeonScript(brightness: number, disableGlow: boolean): string {
 	const safeBrightness = Math.max(0, Math.min(1, brightness));
 	return `(function () {
 	var BRIGHTNESS = ${safeBrightness};
 	var ACCENT = "#ff4be9";
 	var DISABLE_GLOW = ${disableGlow};
+	var BLUR = (6 * BRIGHTNESS).toFixed(2) + "px";
 
-	function buildAugmentedCss(sourceCss) {
-		var augmented = DISABLE_GLOW
-			? sourceCss
-			: sourceCss.replace(/color:\\s*(#[0-9a-fA-F]{6,8});/g, function (_m, color) {
-				return "color: " + color
-					+ "; text-shadow: 0 0 " + (6 * BRIGHTNESS).toFixed(2) + "px " + color
-					+ "; backface-visibility: hidden;";
-			});
-		augmented += "\\n.monaco-editor .cursors-layer .cursor {"
-			+ " background-color: " + ACCENT + " !important;"
-			+ " border-color: " + ACCENT + " !important;"
-			+ " box-shadow: 0 0 " + (4 * BRIGHTNESS).toFixed(2) + "px " + ACCENT + ","
-			+ " 0 0 " + (12 * BRIGHTNESS).toFixed(2) + "px " + ACCENT + ";"
-			+ " }";
-		return augmented;
+	function buildShadowRules(sourceCss) {
+		var rules = [];
+		var ruleRe = /([^{}]+?)\\s*\\{\\s*([^{}]*?)\\s*\\}/g;
+		var colorRe = /color:\\s*(#[0-9a-fA-F]{6,8})/i;
+		var m;
+		while ((m = ruleRe.exec(sourceCss)) !== null) {
+			var selectorList = m[1].trim();
+			var body = m[2];
+			var colorMatch = body.match(colorRe);
+			if (!colorMatch || !selectorList) continue;
+			var color = colorMatch[1];
+			var prefixed = selectorList.split(",").map(function (s) {
+				return ".monaco-editor .view-lines " + s.trim();
+			}).join(", ");
+			rules.push(prefixed + " { text-shadow: 0 0 " + BLUR + " " + color + "; }");
+		}
+		return rules;
+	}
+
+	function buildCss(sourceCss) {
+		var parts = DISABLE_GLOW ? [] : buildShadowRules(sourceCss);
+		parts.push(
+			".monaco-editor .cursors-layer .cursor {" +
+			" background-color: " + ACCENT + " !important;" +
+			" border-color: " + ACCENT + " !important;" +
+			" box-shadow: 0 0 " + (4 * BRIGHTNESS).toFixed(2) + "px " + ACCENT + "," +
+			" 0 0 " + (12 * BRIGHTNESS).toFixed(2) + "px " + ACCENT + ";" +
+			" }"
+		);
+		return parts.join("\\n");
 	}
 
 	function apply() {
 		var el = document.querySelector(".vscode-tokens-styles");
-		if (!el || !el.innerText || el.innerText.indexOf("color:") === -1) {
-			return false;
-		}
+		if (!el || !el.innerText || el.innerText.indexOf("color:") === -1) return false;
 		var existing = document.getElementById("robbydev-neon-dreams");
-		if (existing) {
-			existing.parentNode.removeChild(existing);
-		}
+		if (existing) existing.parentNode.removeChild(existing);
 		var style = document.createElement("style");
 		style.id = "robbydev-neon-dreams";
-		style.textContent = buildAugmentedCss(el.innerText);
+		style.textContent = buildCss(el.innerText);
 		document.body.appendChild(style);
+		try {
+			var n = (style.textContent.match(/text-shadow/g) || []).length;
+			console.log("[RobbyDev] Neon Dreams applied — " + n + " token rules + cursor");
+		} catch (_e) {}
 		return true;
 	}
 
 	function bootstrap() {
-		if (apply()) {
-			return;
-		}
+		if (apply()) return;
 		var attempts = 0;
 		var observer = new MutationObserver(function () {
 			attempts++;
-			if (apply() || attempts > 200) {
-				observer.disconnect();
-			}
+			if (apply() || attempts > 200) observer.disconnect();
 		});
 		observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 	}
@@ -195,14 +214,14 @@ async function enableNeonDreams(_context: vscode.ExtensionContext): Promise<void
 		return;
 	}
 
-	const checksumFixed = updateProductChecksum(workbenchRel);
-	const checksumNote = checksumFixed
-		? ""
-		: " (Note: could not silence the corruption warning automatically — dismiss it on startup.)";
+	const checksumResult = updateProductChecksum(workbenchRel);
+	if (!checksumResult.ok) {
+		vscode.window.showWarningMessage(
+			`RobbyDev: glow enabled, but the corruption warning could not be silenced. ${checksumResult.reason}`
+		);
+	}
 
-	await promptRestart(
-		`RobbyDev Neon Dreams enabled. Restart the editor to see the glow.${checksumNote}`
-	);
+	await promptRestart("RobbyDev Neon Dreams enabled. Restart the editor to see the glow.");
 }
 
 async function disableNeonDreams(): Promise<void> {
